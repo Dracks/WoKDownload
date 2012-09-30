@@ -65,14 +65,14 @@ class WoKSoap:
 
 
             self.dataResponse=[]
-            self.pos=0
+            self.nextPos=1
             self.queryId=response.queryId
             self.number=response.recordsFound
 
         def __chargeResponse(self, response):
             dom=parseString(response.records.replace('\n',''))
             self.dataResponse=map(self.mapFunction,dom.getElementsByTagName('REC'))
-            self.pos+=len(self.dataResponse)
+            self.nextPos+=len(self.dataResponse)
 
         def getData(self):
             return self.dataResponse
@@ -81,7 +81,7 @@ class WoKSoap:
             return self.number
 
         def getPos(self):
-            return self.pos
+            return self.nextPos
 
         def nextPart(self):
             """
@@ -118,7 +118,7 @@ class WoKSoap:
     def search(self, query, begin=1):
         """
             Call to the search api and parse XML
-            @rtype WoKSoap.WoJResponse
+            @rtype WoKSoap.WoKResponse
         """
         soap_query=WoKSoap.QUERY_DICT.copy()
         soap_retrieve=WoKSoap.RETRIEVE_DICT.copy()
@@ -130,4 +130,20 @@ class WoKSoap:
 
         return WoKSoap.WoKResponse(self.query, self.mapFunction, r)
 
+    def citingArticles(self, id, begin=1):
+        """
+        Get the citing Articles from the soap
+        @param id: Paper Identifier
+        @type id: string
+        @param begin: Number to begin the download
+        @type begin: int
+        @return:
+        @rtype: WoKSoap.WoKResponse
+        """
+        soap_retrieve=WoKSoap.RETRIEVE_DICT.copy()
+        soap_retrieve['firstRecord']=begin
+
+        r=self.query.service.citingArticles('WOS', id, [], None,  'en', soap_retrieve)
+
+        return WoKSoap.WoKResponse(self.query, self.mapFunction, r)
 
