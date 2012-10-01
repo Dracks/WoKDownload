@@ -1,6 +1,5 @@
 __author__ = 'dracks'
 from xml.dom.minidom import parseString
-import xml
 
 def getData(record):
     """
@@ -39,6 +38,8 @@ def getData(record):
         if author.getAttribute('role')=='author':
             data={}
             data['name']=author.getElementsByTagName('full_name')[0].firstChild.wholeText
+            #data['first_name']=author.getElementsByTagName('first_name')[0].firstChild.wholeText
+            #data['last_name']=author.getElementsByTagName('last_name')[0].firstChild.wholeText
             data['wos']=author.getElementsByTagName('wos_standard')[0].firstChild.wholeText
             authors.append(data)
 
