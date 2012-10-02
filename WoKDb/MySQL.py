@@ -33,7 +33,7 @@ class MySQL(object):
             self.cursor.execute("""Create table listPapers 
                                 (id char(20) primary key,
                                  doi char(255), 
-                                 title text, 
+                                 title TINYTEXT,
                                  source int(9),
                                  year int(4),
                                  month int(2),
@@ -45,9 +45,9 @@ class MySQL(object):
 
             self.cursor.execute("Create table listAuthors (id int(9) primary key auto_increment, abr char(255), name TINYTEXT, key (abr))ENGINE=InnoDB;")
 
-            self.cursor.execute("Create table paperPaper_aso (srcId int(9), dstId int(9), primary key(srcId, dstId), foreign key (srcId) references listPapers(id), foreign key (dstId) references listPapers(id))ENGINE=InnoDB;")
+            self.cursor.execute("Create table paperPaper_aso (srcId char(20), dstId char(20), primary key(srcId, dstId), foreign key (srcId) references listPapers(id), foreign key (dstId) references listPapers(id))ENGINE=InnoDB;")
 
-            self.cursor.execute("Create table paperAuthors_aso (paperId int(9), authorId int(9), primary key (paperId, authorId), foreign key (paperId) references listPapers(id), foreign key (authorId) references listAuthors(id))ENGINE=InnoDB;")
+            self.cursor.execute("Create table paperAuthors_aso (paperId char(20), authorId int(9), primary key (paperId, authorId), foreign key (paperId) references listPapers(id), foreign key (authorId) references listAuthors(id))ENGINE=InnoDB;")
 
             #self.cursor.execute("Create table paperKeywords_aso (paperId int(9), keywordId int(9), primary key(paperId, keywordId), foreign key (paperId) references listPapers(id), foreign key (keywordId) references listKeywords(id))ENGINE=InnoDB;");
 
@@ -55,13 +55,13 @@ class MySQL(object):
             self.cursor.execute("Create table queryList (id int(9) primary key auto_increment, query text, imported int(9), totals int(9))ENGINE=InnoDB")
 
             self.cursor.execute("""Create table papersCitesDownload (
-                    paperId int(9),
+                    paperId char(20),
                     cite enum('in','out'),
-                    download enum('true', 'false'),
+                    download enum('true', 'false', 'progress'),
                     error enum('true','false'),
                     errorText text,
-                    primary key(paperId, typeDownload),
-                    foreign key(paperId) reference listPapers(id)
+                    primary key(paperId, cite),
+                    foreign key(paperId) references listPapers(id)
                     ) ENGINE=InnoDB""")
 
             self.commit()
@@ -70,28 +70,28 @@ class MySQL(object):
             raise
 
 
-    def getSourceId(self, title, abrev):
+    def getSourceId(self, abbrev, title):
         '''
             search in the database for the id from source, and if don't exist insert new row
         '''
         if title is not None and len(title)>0:
             self.cursor.execute("Select id from listSources where title= %s limit 1", (title,))
         else:
-            self.cursor.execute("Select id from listSources where abr= %s limit 1", (abrev,))
+            self.cursor.execute("Select id from listSources where abr= %s limit 1", (abbrev,))
         if self.cursor.rowcount:
             r=self.cursor.fetchone()[0]
         else:
-            self.cursor.execute("Insert into listSources (title, abr) values (%s, %s)", (title, abrev))
+            self.cursor.execute("Insert into listSources (title, abr) values (%s, %s)", (title, abbrev))
             r=self.cursor.lastrowid
         return r
 
 
-    def getAuthorId(self, abrev, name):
-        self.cursor.execute("Select id from listAuthors where abr=%s and name =%s limit 1", ( abrev, name))
+    def getAuthorId(self, abbrev, name):
+        self.cursor.execute("Select id from listAuthors where abr=%s and name =%s limit 1", ( abbrev, name))
         if self.cursor.rowcount:
             r=self.cursor.fetchone()[0]
         else:
-            self.cursor.execute("Insert into listAuthors (abr, name) values (%s, %s, %s)", (abrev, name))
+            self.cursor.execute("Insert into listAuthors (abr, name) values (%s, %s)", (abbrev, name))
             r=self.cursor.lastrowid
         return r
 
@@ -155,10 +155,11 @@ class MySQL(object):
     def insertEmptyPaper(self, recId):
         self.cursor.execute("insert into listPapers (id) values (%s)", (recId, ))
 
-    def insertPaper(self, recId, doi, title, source, volum, Page, year, month, language, cites):
+    def insertPaper(self, recId, doi, title, source, year, month):
+        #print recId, doi, title, source, year, month
         self.cursor.execute("""
             insert into listPapers 
-            (id, doi, title, source, year, month,)
+            (id, doi, title, source, year, month)
             values 
             (%s, %s, %s, %s, %s, %s)""", (recId, doi, title, source, year, month,))
 

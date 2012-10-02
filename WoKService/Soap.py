@@ -2,6 +2,8 @@ __author__ = 'dracks'
 
 import suds
 import cookielib
+import so
+#from pprint import pprint
 
 from xml.dom.minidom import parseString
 
@@ -87,11 +89,13 @@ class WoKSoap:
             """
             Download the next 100 items for the query
             """
-            if self.pos<=self.number:
+            if self.nextPos<=self.number:
                 soap_retrieve=WoKSoap.RETRIEVE_DICT.copy()
-                soap_retrieve['firstRecord']=begin
-
-                self.__chargeResponse(self.client.service.retrieve(queryId, soap_retrieve))
+                soap_retrieve['firstRecord']=self.nextPos
+                print self.queryId, self.nextPos, self.number
+                response=self.client.service.retrieve(self.queryId, soap_retrieve)
+                #pprint(response)
+                self.__chargeResponse(response)
                 return True
             else:
                 return False
@@ -113,6 +117,10 @@ class WoKSoap:
     def __authorize(self):
         sid=self.authorize.service.authenticate()
         self.session.setSession(sid)
+
+    def close(self):
+        self.authorize.service.closeSession()
+        self.session.closeSession()
 
 
     def search(self, query, begin=1):
