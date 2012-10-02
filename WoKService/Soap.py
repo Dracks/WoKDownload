@@ -58,14 +58,14 @@ class WoKSoap:
         """
         The query Response are packated inside
         """
-        def __init__(self, client, mapFunction, response):
+        def __init__(self, client, mapFunction, begin, response):
             self.client=client
             self.mapFunction=mapFunction
 
 
 
             self.dataResponse=[]
-            self.nextPos=1
+            self.nextPos=begin
             self.queryId=response.queryId
             self.number=response.recordsFound
 
@@ -128,7 +128,7 @@ class WoKSoap:
 
         r=self.query.service.search(soap_query, soap_retrieve)
 
-        return WoKSoap.WoKResponse(self.query, self.mapFunction, r)
+        return WoKSoap.WoKResponse(self.query, self.mapFunction, begin, r)
 
     def citingArticles(self, id, begin=1):
         """
@@ -145,5 +145,5 @@ class WoKSoap:
 
         r=self.query.service.citingArticles('WOS', id, [], None,  'en', soap_retrieve)
 
-        return WoKSoap.WoKResponse(self.query, self.mapFunction, r)
+        return WoKSoap.WoKResponse(self.query, self.mapFunction, begin, r)
 
