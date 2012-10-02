@@ -164,7 +164,7 @@ def runDownload(create):
     runDownloadInputCites(soap, db)
     runDownloadOutputCites(soap, db)
 
-    soap.close()
+    #soap.close()
 
 
 

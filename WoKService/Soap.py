@@ -2,7 +2,8 @@ __author__ = 'dracks'
 
 import suds
 import cookielib
-import so
+import os
+import Debug
 #from pprint import pprint
 
 from xml.dom.minidom import parseString
@@ -72,7 +73,11 @@ class WoKSoap:
             self.number=response.recordsFound
 
         def __chargeResponse(self, response):
-            dom=parseString(response.records.replace('\n',''))
+            #open("DebugResponse.xml", "w").write(response.records)
+            #Debug.debugWrite(response.records)
+            #dom=parseString(response.records.replace('\n','').replace(u'\u674e', '').replace(u'\u6db5',''))
+            dom=parseString(response.records.replace('\n','').encode('ascii', 'xmlcharrefreplace'))
+
             self.dataResponse=map(self.mapFunction,dom.getElementsByTagName('REC'))
             self.nextPos+=len(self.dataResponse)
 

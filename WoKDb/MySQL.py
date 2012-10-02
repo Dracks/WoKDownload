@@ -181,9 +181,9 @@ class MySQL(object):
             appendAnd='and cite="'+cite+'"'
 
         if paperId is None:
-            self.cursor.execute("select paperId, typeDownload from papersCitesDownload where download='false' and error='false' {extraAnd} limit 1".format(extraAnd=appendAnd))
+            self.cursor.execute("select paperId, cite from papersCitesDownload where download='false' and error='false' %s limit 1" % appendAnd)
         else:
-            self.cursor.execute("select paperId, typeDownload from papersCitesDownload where paperId=%s limit 1", (paperId, ))
+            self.cursor.execute("select paperId, cite from papersCitesDownload where paperId=%s limit 1", (paperId, ))
         return  self.cursor.fetchone()
 
     def updatePaperToDownload(self, recId, cite, download=True, error=False, errorText=''):
