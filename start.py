@@ -1,8 +1,10 @@
 __author__ = 'dracks'
-from xml.dom.minidom import parseString
+#from xml.dom.minidom import parseString
 
 import WoKService
 import WoKDb
+import time
+import suds
 
 def getData(record):
     """
@@ -47,7 +49,11 @@ def getData(record):
             data['name']=author.getElementsByTagName('full_name')[0].firstChild.wholeText
             #data['first_name']=author.getElementsByTagName('first_name')[0].firstChild.wholeText
             #data['last_name']=author.getElementsByTagName('last_name')[0].firstChild.wholeText
-            data['wos']=author.getElementsByTagName('wos_standard')[0].firstChild.wholeText
+            wos_standard=author.getElementsByTagName('wos_standard')[0].firstChild
+            if wos_standard is not None:
+                data['wos']=wos_standard.wholeText
+            else:
+                data['wos']=''
             authors.append(data)
 
     ret['authors']=authors
@@ -106,9 +112,12 @@ def runDownloadQuery(soap, db):
         while begin <= end:
             for element in response.getData():
                 insertRow(db, element)
-                db.insertPaperToDownload(element['id'], 'out')
+                if db.getPaperToDownload(element['id'], 'out') is None:
+                    db.insertPaperToDownload(element['id'], 'out')
+
                 if int(element['cites'])>0:
-                    db.insertPaperToDownload(element['id'], 'in')
+                    if db.getPaperToDownload(element['id'], 'in') is None:
+                        db.insertPaperToDownload(element['id'], 'in')
                 begin+=1
             db.updateQuery(data_query[0], begin, response.getNumber())
             db.commit()
@@ -132,6 +141,8 @@ def runDownloadInputCites(soap, db):
         paperId=data_query[0]
         response=soap.citingArticles(paperId)
 
+        t0=time.time()
+
         pending=True
 
         while pending:
@@ -145,6 +156,8 @@ def runDownloadInputCites(soap, db):
         db.commit()
 
         data_query=db.getPaperToDownload(cite='in')
+        if time.time()-t0<1:
+            time.sleep(1-(time.time()-t0))
 
 
 
@@ -160,9 +173,17 @@ def runDownload(create):
     if create:
         db.createTables()
 
-    runDownloadQuery(soap, db)
-    runDownloadInputCites(soap, db)
-    runDownloadOutputCites(soap, db)
+    repeat=True
+    while repeat:
+        try:
+            runDownloadQuery(soap, db)
+            runDownloadInputCites(soap, db)
+            runDownloadOutputCites(soap, db)
+            repeat=False
+        except suds.WebFault, error:
+            if hasattr(error.fault, 'faultstring'):
+                if error.fault.faultstring.__contains("(ISE0002)"):
+                    soap.resetSession()
 
     #soap.close()
 
@@ -172,5 +193,6 @@ if __name__=='__main__':
     #rawData=open("SampleResponses/Sample1.xml", "r").read()
     #dom=parseString(rawData.replace('\n',''))
     #map(getData, dom.getElementsByTagName('REC'))
+
 
     runDownload(False)

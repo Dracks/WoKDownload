@@ -3,7 +3,7 @@ __author__ = 'dracks'
 import suds
 import cookielib
 import os
-import Debug
+#import Debug
 #from pprint import pprint
 
 from xml.dom.minidom import parseString
@@ -97,7 +97,7 @@ class WoKSoap:
             if self.nextPos<=self.number:
                 soap_retrieve=WoKSoap.RETRIEVE_DICT.copy()
                 soap_retrieve['firstRecord']=self.nextPos
-                print self.queryId, self.nextPos, self.number
+                #print self.queryId, self.nextPos, self.number
                 response=self.client.service.retrieve(self.queryId, soap_retrieve)
                 #pprint(response)
                 self.__chargeResponse(response)
@@ -122,6 +122,11 @@ class WoKSoap:
     def __authorize(self):
         sid=self.authorize.service.authenticate()
         self.session.setSession(sid)
+
+    def resetSession(self):
+        self.close()
+        self.__authorize()
+        self.query.options.transport.cookiejar.set_cookie(self.session.getCookieSession())
 
     def close(self):
         self.authorize.service.closeSession()
@@ -159,4 +164,6 @@ class WoKSoap:
         r=self.query.service.citingArticles('WOS', id, [], None,  'en', soap_retrieve)
 
         return WoKSoap.WoKResponse(self.query, self.mapFunction, begin, r)
+
+
 
