@@ -35,6 +35,8 @@ class WoKSoap:
         def closeSession(self):
             if self.opened:
                 os.remove("sessionId")
+                self.opened=False
+                self.sid=None
 
         def getCookieSession(self):
             if self.opened:
@@ -107,6 +109,9 @@ class WoKSoap:
 
         def reset(self):
             self.pos=0
+
+        #def toString(self):
+        #    return "nextPos:"+self.nextPos+"\nnumber:"+self.number+"\ncountDownloaded:"+len(self.dataResponse)
 
     def __init__(self, mapFunction):
         self.mapFunction=mapFunction

@@ -5,6 +5,10 @@ import WoKService
 import WoKDb
 import time
 import suds
+import pprint
+
+import sys
+import traceback
 
 def getData(record):
     """
@@ -109,7 +113,10 @@ def runDownloadQuery(soap, db):
         end=data_query[3]
         print data_query
         response=soap.search(data_query[1], begin)
+        #print response.toString()
         while begin <= end:
+            #print "inside while"
+            #pprint.pprint(response)
             for element in response.getData():
                 insertRow(db, element)
                 if db.getPaperToDownload(element['id'], 'out') is None:
@@ -182,8 +189,15 @@ def runDownload(create):
             repeat=False
         except suds.WebFault, error:
             if hasattr(error.fault, 'faultstring'):
-                if error.fault.faultstring.__contains("(ISE0002)"):
+                faultstring=error.fault.faultstring
+                if faultstring.__contains__("(ISE0002)"):
                     soap.resetSession()
+                elif faultstring.__contains__("(SEE0003)"):
+                    soap.resetSession()
+                else:
+                    raise error
+            else:
+                raise error
 
     #soap.close()
 
@@ -195,4 +209,9 @@ if __name__=='__main__':
     #map(getData, dom.getElementsByTagName('REC'))
 
 
-    runDownload(False)
+    try:
+        runDownload(False)
+    except:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        ErrorList=traceback.format_exception(exc_type, exc_value,exc_traceback)
+        print "".join(ErrorList)
