@@ -144,8 +144,26 @@ class MySQL(object):
         reqFields='*'
         if data!=None:
             reqFields="`"+"`,`".join(data)+"`"
+        #print reqFields, recId
         self.cursor.execute("select %s from listPapers where id=%s limit 1" % (reqFields, '%s'),(recId, ))
         return self.cursor.fetchone()
+
+    def getLinkPaper(self, source=None, destination=None):
+        assert(source is not None or destination is not None)
+        where=[]
+        where_values=[]
+        if source is not None:
+            where.append("srcId = %s")
+            where_values.append(source)
+
+        if destination is not None:
+            where.append("dstId = %s")
+            where_values.append(source)
+
+        self.cursor.execute("select srcId, dstId from paperPaper_aso where "+" and ".join(where), where_values)
+        return self.cursor.fetchall()
+
+
 
     def updatePaper(self, recId, doi, title, source, volum, Page, year, month, language, cites):
         self.cursor.execute(""" update listPapers  set 
@@ -183,7 +201,7 @@ class MySQL(object):
         if paperId is None:
             self.cursor.execute("select paperId, cite from papersCitesDownload where download='false' and error='false' %s limit 1" % appendAnd)
         else:
-            self.cursor.execute("select paperId, cite from papersCitesDownload where paperId=%s limit 1", (paperId, ))
+            self.cursor.execute("select paperId, cite from papersCitesDownload where paperId=%s %s limit 1" % ("%s", appendAnd), (paperId, ))
         return  self.cursor.fetchone()
 
     def updatePaperToDownload(self, recId, cite, download=True, error=False, errorText=''):

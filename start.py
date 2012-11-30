@@ -6,6 +6,7 @@ import WoKDb
 import time
 import suds
 import pprint
+import urllib2
 
 import sys
 import traceback
@@ -91,6 +92,7 @@ def insertRow(db, e):
     paperId=e['id']
     ret=db.getPaper(paperId, ['id'])
     if ret is None:
+        #print ret
         date=e['pubdate'].split('-')
         sourceId=db.getSourceId(e['source']['abbreviation'], e['source']['title'])
 
@@ -119,11 +121,14 @@ def runDownloadQuery(soap, db):
             #pprint.pprint(response)
             for element in response.getData():
                 insertRow(db, element)
+                #print element['cites']
                 if db.getPaperToDownload(element['id'], 'out') is None:
                     db.insertPaperToDownload(element['id'], 'out')
 
                 if int(element['cites'])>0:
+                    #print "inside 1 ", element['id']
                     if db.getPaperToDownload(element['id'], 'in') is None:
+                        #print "inside 2"
                         db.insertPaperToDownload(element['id'], 'in')
                 begin+=1
             db.updateQuery(data_query[0], begin, response.getNumber())
@@ -142,20 +147,35 @@ def runDownloadInputCites(soap, db):
     @return:
     @rtype:
     """
-
     data_query=db.getPaperToDownload(cite='in')
     while data_query is not None:
         paperId=data_query[0]
+        print "in", paperId;
+        listInserted=[]
         response=soap.citingArticles(paperId)
 
         t0=time.time()
 
         pending=True
 
+        print response.getNumber()
+
         while pending:
+            #print "tractant"
             for element in response.getData():
-                insertRow(db, element)
-                db.linkPapers(paperId, element['id'])
+                elementId=element['id']
+                #print listInserted
+                #print elementId
+                if not listInserted.__contains__(elementId):
+                    #listInserted.append(elementId)
+                    insertRow(db, element)
+                    #pprint.pprint(element)
+                    #print element['database'], element['id']
+                    #q=db.getLinkPaper(paperId, element['id'])
+		    #if q is not None:
+                    db.linkPapers(elementId, paperId)
+
+            #print "Next part"
 
             pending=response.nextPart()
 
@@ -181,6 +201,7 @@ def runDownload(create):
         db.createTables()
 
     repeat=True
+    lastUrlError=time.time()
     while repeat:
         try:
             runDownloadQuery(soap, db)
@@ -188,16 +209,31 @@ def runDownload(create):
             runDownloadOutputCites(soap, db)
             repeat=False
         except suds.WebFault, error:
+            db.rollback()
             if hasattr(error.fault, 'faultstring'):
                 faultstring=error.fault.faultstring
+                print faultstring
                 if faultstring.__contains__("(ISE0002)"):
                     soap.resetSession()
                 elif faultstring.__contains__("(SEE0003)"):
+                    soap.resetSession()
+                elif faultstring.__contains__("(WSE0002)"):
+                    time.sleep(30)
+                elif faultstring.__contains__("(WSE0024)"):
+                    time.sleep(30)
+                elif faultstring.__contains__("Session not found: SID="):
                     soap.resetSession()
                 else:
                     raise error
             else:
                 raise error
+        except  urllib2.URLError, error:
+            now=time.time()
+            if (now-lastUrlError)<310.0:
+                raise error
+            print "urllib2 Error"
+            time.sleep(60)
+
 
     #soap.close()
 

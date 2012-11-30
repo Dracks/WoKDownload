@@ -3,8 +3,8 @@ __author__ = 'dracks'
 import suds
 import cookielib
 import os
-#import Debug
-#from pprint import pprint
+import Debug
+#import pprint
 
 from xml.dom.minidom import parseString
 
@@ -13,7 +13,7 @@ class WoKSoap:
         Map and manage the basic soap functions
     """
     QUERY_DICT={'databaseId':'WOS','userQuery':None, 'queryLanguage':'en'}
-    RETRIEVE_DICT={'firstRecord':None, 'count':100}
+    RETRIEVE_DICT={'firstRecord':None, 'count':10}
 
     class Session:
         def __init__(self):
@@ -67,8 +67,6 @@ class WoKSoap:
             self.client=client
             self.mapFunction=mapFunction
 
-
-
             self.dataResponse=[]
             self.nextPos=begin
             self.queryId=response.queryId
@@ -76,12 +74,14 @@ class WoKSoap:
 
         def __chargeResponse(self, response):
             #open("DebugResponse.xml", "w").write(response.records)
-            #Debug.debugWrite(response.records)
+            Debug.debugWrite(response.records.replace('>','>\n'))
+            #print response.records
             #dom=parseString(response.records.replace('\n','').replace(u'\u674e', '').replace(u'\u6db5',''))
             dom=parseString(response.records.replace('\n','').encode('ascii', 'xmlcharrefreplace'))
 
             self.dataResponse=map(self.mapFunction,dom.getElementsByTagName('REC'))
             self.nextPos+=len(self.dataResponse)
+            #print len(self.dataResponse)
 
         def getData(self):
             return self.dataResponse
@@ -96,7 +96,9 @@ class WoKSoap:
             """
             Download the next 100 items for the query
             """
+            #print "Next pos", self.nextPos, "Number:", self.number
             if self.nextPos<=self.number:
+                self.dataResponse=None
                 soap_retrieve=WoKSoap.RETRIEVE_DICT.copy()
                 soap_retrieve['firstRecord']=self.nextPos
                 #print self.queryId, self.nextPos, self.number
@@ -116,7 +118,7 @@ class WoKSoap:
     def __init__(self, mapFunction):
         self.mapFunction=mapFunction
         self.authorize=suds.client.Client('http://search.webofknowledge.com/esti/wokmws/ws/WOKMWSAuthenticate?wsdl')
-        self.query=suds.client.Client("http://search.webofknowledge.com/esti/wokmws/ws/WokSearch?wsdl")
+        self.query=suds.client.Client("http://search.webofknowledge.com/esti/wokmws/ws/WokSearch?wsdl", timeout=300)
         self.session=WoKSoap.Session()
         if not self.session.opened:
             self.__authorize()
@@ -134,7 +136,13 @@ class WoKSoap:
         self.query.options.transport.cookiejar.set_cookie(self.session.getCookieSession())
 
     def close(self):
-        self.authorize.service.closeSession()
+        try:
+            self.authorize.service.closeSession()
+        except suds.WebFault, error:
+            if hasattr(error.fault, 'faultstring'):
+                faultstring=error.fault.faultstring
+                if not faultstring.__contains__("Session not found: SID=") and not faultstring.__contains__("No matches returned for SessionID"):
+                    raise error
         self.session.closeSession()
 
 
@@ -148,6 +156,9 @@ class WoKSoap:
 
         soap_query['userQuery']=query
         soap_retrieve['firstRecord']=begin
+
+        #pprint.pprint(soap_query)
+        #pprint.pprint(soap_retrieve)
 
         r=self.query.service.search(soap_query, soap_retrieve)
 
