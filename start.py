@@ -27,9 +27,10 @@ def getData(record):
     assert(len(tc_list)==1)
     tc_list=tc_list[0]
 
-    ret={}
+    ret={'title':'Not title specified, sorry'}
 
     uid=record.getElementsByTagName('UID')[0].firstChild.wholeText
+    #print uid
     ret['database']=uid.split(':')[0]
     ret['id']=uid.split(':')[1]
 
@@ -51,14 +52,21 @@ def getData(record):
     for author in listAuthors:
         if author.getAttribute('role')=='author':
             data={}
-            data['name']=author.getElementsByTagName('full_name')[0].firstChild.wholeText
+            full_name=author.getElementsByTagName('full_name')[0].firstChild;
+            if full_name is not None:
+                data['name']=full_name.wholeText
+            else:
+                data['name']=''
             #data['first_name']=author.getElementsByTagName('first_name')[0].firstChild.wholeText
             #data['last_name']=author.getElementsByTagName('last_name')[0].firstChild.wholeText
             wos_standard=author.getElementsByTagName('wos_standard')[0].firstChild
             if wos_standard is not None:
                 data['wos']=wos_standard.wholeText
+                if data['name']=='':
+                    data['name']=data['wos']
             else:
                 data['wos']=''
+            assert(data['name']!='')
             authors.append(data)
 
     ret['authors']=authors
@@ -150,7 +158,7 @@ def runDownloadInputCites(soap, db):
     data_query=db.getPaperToDownload(cite='in')
     while data_query is not None:
         paperId=data_query[0]
-        print "in", paperId;
+        print "in", paperId
         listInserted=[]
         response=soap.citingArticles(paperId)
 
@@ -167,7 +175,7 @@ def runDownloadInputCites(soap, db):
                 #print listInserted
                 #print elementId
                 if not listInserted.__contains__(elementId):
-                    #listInserted.append(elementId)
+                    listInserted.append(elementId)
                     insertRow(db, element)
                     #pprint.pprint(element)
                     #print element['database'], element['id']
@@ -183,8 +191,9 @@ def runDownloadInputCites(soap, db):
         db.commit()
 
         data_query=db.getPaperToDownload(cite='in')
-        if time.time()-t0<1:
-            time.sleep(1-(time.time()-t0))
+        elapsed=time.time()-t0
+        if elapsed<1:
+            time.sleep(1-elapsed)
 
 
 
@@ -228,6 +237,7 @@ def runDownload(create):
             else:
                 raise error
         except  urllib2.URLError, error:
+            db.rollback()
             now=time.time()
             if (now-lastUrlError)<310.0:
                 raise error

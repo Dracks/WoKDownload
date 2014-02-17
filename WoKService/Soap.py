@@ -74,7 +74,7 @@ class WoKSoap:
 
         def __chargeResponse(self, response):
             #open("DebugResponse.xml", "w").write(response.records)
-            Debug.debugWrite(response.records.replace('>','>\n'))
+            #Debug.debugWrite(response.records.replace('>','>\n'))
             #print response.records
             #dom=parseString(response.records.replace('\n','').replace(u'\u674e', '').replace(u'\u6db5',''))
             dom=parseString(response.records.replace('\n','').encode('ascii', 'xmlcharrefreplace'))
@@ -164,7 +164,7 @@ class WoKSoap:
 
         return WoKSoap.WoKResponse(self.query, self.mapFunction, begin, r)
 
-    def citingArticles(self, id, begin=1):
+    def citingArticles(self, idArticle, begin=1):
         """
         Get the citing Articles from the soap
         @param id: Paper Identifier
@@ -177,7 +177,7 @@ class WoKSoap:
         soap_retrieve=WoKSoap.RETRIEVE_DICT.copy()
         soap_retrieve['firstRecord']=begin
 
-        r=self.query.service.citingArticles('WOS', id, [], None,  'en', soap_retrieve)
+        r=self.query.service.citingArticles('WOS', idArticle, [], None,  'en', soap_retrieve)
 
         return WoKSoap.WoKResponse(self.query, self.mapFunction, begin, r)
 

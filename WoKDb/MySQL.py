@@ -37,7 +37,8 @@ class MySQL(object):
                                  source int(9),
                                  year int(4),
                                  month int(2),
-                                 foreign key (source) references listSources(id)) ENGINE=InnoDB;""")
+                                 foreign key (source) references listSources(id))
+                                 ENGINE=InnoDB;""")
 
             #self.cursor.execute("Create table listKeywords (id int(9) primary key auto_increment, name char(255)) ENGINE=InnoDB");
 
@@ -45,9 +46,9 @@ class MySQL(object):
 
             self.cursor.execute("Create table listAuthors (id int(9) primary key auto_increment, abr char(255), name TINYTEXT, key (abr))ENGINE=InnoDB;")
 
-            self.cursor.execute("Create table paperPaper_aso (srcId char(20), dstId char(20), primary key(srcId, dstId), foreign key (srcId) references listPapers(id), foreign key (dstId) references listPapers(id))ENGINE=InnoDB;")
+            self.cursor.execute("Create table paperPaper_aso (srcId char(20), dstId char(20), primary key(srcId, dstId), constraint foreign key (srcId) references listPapers(id)  on update cascade on delete restrict, constraint foreign key (dstId) references listPapers(id)  on update cascade on delete restrict)ENGINE=InnoDB;")
 
-            self.cursor.execute("Create table paperAuthors_aso (paperId char(20), authorId int(9), primary key (paperId, authorId), foreign key (paperId) references listPapers(id), foreign key (authorId) references listAuthors(id))ENGINE=InnoDB;")
+            self.cursor.execute("Create table paperAuthors_aso (paperId char(20), authorId int(9), primary key (paperId, authorId), constraint foreign key (paperId) references listPapers(id)  on update cascade on delete restrict, constraint foreign key (authorId) references listAuthors(id)  on update cascade on delete restrict) ENGINE=InnoDB;")
 
             #self.cursor.execute("Create table paperKeywords_aso (paperId int(9), keywordId int(9), primary key(paperId, keywordId), foreign key (paperId) references listPapers(id), foreign key (keywordId) references listKeywords(id))ENGINE=InnoDB;");
 
@@ -61,7 +62,7 @@ class MySQL(object):
                     error enum('true','false'),
                     errorText text,
                     primary key(paperId, cite),
-                    foreign key(paperId) references listPapers(id)
+                    constraint foreign key(paperId) references listPapers(id)  on update cascade on delete restrict
                     ) ENGINE=InnoDB""")
 
             self.commit()
