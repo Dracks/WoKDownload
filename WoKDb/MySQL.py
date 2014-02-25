@@ -186,6 +186,10 @@ class MySQL(object):
         self.cursor.execute("select id, query, imported, totals from queryList where imported<=totals limit 1")
         return self.cursor.fetchone()
 
+    def addQuery(self, query):
+        self.cursor.execute("insert into queryList (query, imported, totals) values (%s, 1, 1)", query)
+        self.commit()
+
     def updateQuery(self, queryId, imported, totals):
         self.cursor.execute("update queryList set imported=%s, totals=%s where id=%s limit 1", (imported, totals, queryId))
 

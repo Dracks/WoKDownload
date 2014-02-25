@@ -1,3 +1,5 @@
+import optparse
+
 __author__ = 'dracks'
 #from xml.dom.minidom import parseString
 
@@ -7,6 +9,8 @@ import time
 import suds
 import pprint
 import urllib2
+import config
+
 
 import sys
 import traceback
@@ -115,6 +119,13 @@ def insertRow(db, e):
         #[db.linkAuthors(paperId, authorId) for authorId in listAuthors]
 
 def runDownloadQuery(soap, db):
+    """
+
+    @param soap: Soap Instance to call API soaps
+    @type soap: WoKService.WoKSoap
+    @param db: MySQL Instance to call and use database
+    @type db: WoKDb.MySQL
+    """
 
     data_query=db.getQuery()
 
@@ -147,13 +158,12 @@ def runDownloadQuery(soap, db):
 
 def runDownloadInputCites(soap, db):
     """
+    Get input cites from papers downloaded in query step
 
-    @param soap:
+    @param soap: Soap Instance to call API soaps
     @type soap: WoKService.WoKSoap
-    @param db:
+    @param db: MySQL Instance to call and use database
     @type db: WoKDb.MySQL
-    @return:
-    @rtype:
     """
     data_query=db.getPaperToDownload(cite='in')
     while data_query is not None:
@@ -196,26 +206,38 @@ def runDownloadInputCites(soap, db):
             time.sleep(1-elapsed)
 
 
-
-
 def runDownloadOutputCites(soap, db):
-    pass
+    """
+    Get output citations from papers downloaded in query step
+
+    @param soap: Soap Instance to call API soaps
+    @type soap: WoKService.WoKSoap
+    @param db: MySQL Instance to call and use database
+    @type db: WoKDb.MySQL
+    """
+    assert(False, "Not implemented")
 
 
-def runDownload(create):
+def runDownload(db, s1, s2, s3):
+    """
+    @type db: WoKDb.MySQL
+    """
     soap=WoKService.WoKSoap(getData)
-    db=WoKDb.MySQL('localhost', 'webofscience','climaIC3','webofscience')
 
-    if create:
-        db.createTables()
 
     repeat=True
     lastUrlError=time.time()
     while repeat:
         try:
-            runDownloadQuery(soap, db)
-            runDownloadInputCites(soap, db)
-            runDownloadOutputCites(soap, db)
+            if s1:
+                print "Download query"
+                runDownloadQuery(soap, db)
+            if s2:
+                print "Download input cites"
+                runDownloadInputCites(soap, db)
+            if s3:
+                print "Download output cites"
+                runDownloadOutputCites(soap, db)
             repeat=False
         except suds.WebFault, error:
             db.rollback()
@@ -250,14 +272,42 @@ def runDownload(create):
 
 
 if __name__=='__main__':
-    #rawData=open("SampleResponses/Sample1.xml", "r").read()
-    #dom=parseString(rawData.replace('\n',''))
-    #map(getData, dom.getElementsByTagName('REC'))
+    db=WoKDb.MySQL(config.host, config.user, config.pswd, config.db)
 
+    usage="Usage: %prog [options]"
+    description="Download papers and cites from Web of Knowledge API database, using Webservice v3.0"
+    parser = optparse.OptionParser(usage, description=description)
 
-    try:
-        runDownload(False)
-    except:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        ErrorList=traceback.format_exception(exc_type, exc_value,exc_traceback)
-        print "".join(ErrorList)
+    parser.add_option("-c", "--create", action="store_true", dest="create", default=False, help="Create database tables")
+
+    parser.add_option("-a", "--add", action="store", dest="add", default=None, help="Add Wok query to database")
+
+    parser.add_option("-s", "--skip", action="store_true", dest="skip", default=False, help="Skip download process")
+
+    parser.add_option("-q", "--download-query", action="store_true", dest="download_query", default=False, help="Download query papers only")
+
+    parser.add_option("-i", "--download-input", action="store_true", dest="download_input", default=False, help="Download input citation papers only")
+
+    parser.add_option("-o", "--download-output", action="store_true", dest="download_output", default=False, help="Download output citation papers only")
+
+    (options, args) = parser.parse_args()
+
+    if options.create:
+        db.createTables()
+
+    if options.add is not None:
+        db.addQuery(options.add)
+
+    if not options.skip:
+
+        if not (options.download_query or options.download_input or options.download_output):
+            options.download_query=True
+            options.download_input=True
+            options.download_output=True
+
+        try:
+            runDownload(db, options.download_query, options.download_input, options.download_output)
+        except:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            ErrorList=traceback.format_exception(exc_type, exc_value,exc_traceback)
+            print "".join(ErrorList)

@@ -19,3 +19,12 @@ select count(*), s.title from tmp_listSources s inner join (listPapers p inner j
 
  -- Get % downloaded
  select t.count, d.count, t.id, t.title from tmp_downloadTotal t inner join tmp_downloaded d on t.id=d.id order by t.title;
+
+
+ -- Create tmp tables
+create table tmp_countPapers select count(*) as count, s.id, s.title from tmp_listSources s inner join listPapers p on s.id=p.source group by s.id, s.title order by title;
+create table tmp_input select count(*), s.id, s.title from tmp_listSources s inner join (listPapers p inner join paperPaper_aso pa on p.id=pa.dstId ) on p.source=s.id group by s.id, s.title;
+create table tmp_dowloaded select count(*), s.title from tmp_listSources s inner join (listPapers p inner join papersCitesDownload pc on p.id=pc.paperId and pc.download=true and pc.cite='in' ) on p.source=s.id group by s.id, s.title;
+create table tmp_downloaded select count(*) as count,s.id,  s.title from tmp_listSources s inner join (listPapers p inner join papersCitesDownload pc on p.id=pc.paperId and pc.download=true and pc.cite='in' ) on p.source=s.id group by s.id, s.title;
+create table tmp_downloadTotal select count(*) as count,s.id,  s.title from tmp_listSources s inner join (listPapers p inner join papersCitesDownload pc on p.id=pc.paperId and pc.cite='in' ) on p.source=s.id group by s.id, s.title;
+create table tmp_paperQuotes select dstId as paperId, count(*) as cites from paperPaper_aso group by dstId;

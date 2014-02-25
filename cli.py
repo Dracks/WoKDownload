@@ -2,6 +2,7 @@ __author__ = 'dracks'
 import MySQLdb
 import sys
 import optparse
+import config
 
 def getPapersId(cursor):
     cursor.execute("select id from listPapers where year=2011")
@@ -53,7 +54,7 @@ def showSecondStepDownload(cursor):
 
 
 if __name__=='__main__':
-    db=MySQLdb.Connect("localhost", "webofscience", "climaIC3", "webofscience")
+    db=MySQLdb.Connect(config.host, config.user, config.pswd, config.db)
     cursor=db.cursor()
 
     usage="Usage: cli.py [options]"
